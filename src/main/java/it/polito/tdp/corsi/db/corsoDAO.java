@@ -6,12 +6,36 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import it.polito.tdp.corsi.model.Corso;
+import it.polito.tdp.corsi.model.Studente;
 
 public class corsoDAO {
+	
+	public boolean esisteCorso(String codins) {
+		String sql="SELECT * FROM corso WHERE codins=?";
+		try {
+			Connection conn= ConnectDB.getConnection();
+			PreparedStatement st=conn.prepareStatement(sql);
+			st.setString(1, codins);
+			ResultSet rs=st.executeQuery();
+			
+			if(rs.next()) {
+				conn.close();
+				return true;
+			}else {
+				conn.close();
+				return false;
+			}
+			
+		}catch(SQLException e) {
+			throw new RuntimeException(e);
+		}
+		
+	}
 	
 	public List<Corso>getCorsiByPeriodo(Integer pd){
 		String sql="SELECT * FROM corso WHERE pd=?";
@@ -65,6 +89,58 @@ public class corsoDAO {
 		
 		return result;
 	}
+	
+	
+	
+	public List<Studente>getStudentiByCorso(Corso corso){
+		String sql="SELECT s.matricola, s.cognome,s.nome, s.cds " + 
+				"FROM studente AS s, iscrizione AS i " + 
+				"WHERE s.matricola=i.matricola AND i.codins= ? ";
+		List<Studente> result =new LinkedList<Studente>();
+		
+		try {
+			Connection conn= ConnectDB.getConnection();
+			PreparedStatement st=conn.prepareStatement(sql);
+			st.setString(1, corso.getCodins());
+			ResultSet rs=st.executeQuery();
+			while(rs.next()) {
+				Studente s= new Studente(rs.getInt("matricola"),rs.getString("cognome"),rs.getString("nome"),rs.getString("cds"));
+				result.add(s);
+			}
+			conn.close();
+			
+		} catch(SQLException e) {
+			throw new RuntimeException(e);
+		}
+		return result;
+		
+	}
+	
+
+	public Map<String, Integer> getDivisioneCDS(Corso corso) {
+		String sql="SELECT s.cds, COUNT(*) AS tot " + 
+				"FROM studente AS s, iscrizione AS i " + 
+				"WHERE s.matricola=i.matricola AND i.codins= ? AND s.cds<>\"\" " + 
+				"GROUP BY s.cds ";
+		Map<String, Integer>statistiche=new HashMap<String, Integer>();
+		
+		try {
+			Connection conn= ConnectDB.getConnection();
+			PreparedStatement st=conn.prepareStatement(sql);
+			st.setString(1, corso.getCodins());
+			ResultSet rs=st.executeQuery();
+			while(rs.next()) {
+				statistiche.put(rs.getString("cds"), rs.getInt("tot"));
+			}
+			conn.close();
+			
+		} catch(SQLException e) {
+			throw new RuntimeException(e);
+		}
+		return statistiche;
+	}
+	
+	
 	
 	
 	
